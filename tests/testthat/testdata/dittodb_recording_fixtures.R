@@ -19,7 +19,7 @@ con_test <- make_test_connection()
 fix_ecb_url()
 tbl_id <- UMARaccessR::sql_get_table_id_from_table_code(con_test, "ICP")
 dim_list <- ecb::get_dimensions("ICP.M.U2.N.000000.4.ANR")
-table_dimensions <- ECBfetchR:::prepare_ecb_table_dimensions(tbl_id, dim_list, con_test)
+table_dimensions <- ECBfetchR:::prepare_table_dimensions_table(tbl_id, dim_list, con_test)
 UMARimportR::insert_new_table_dimensions(con_test, table_dimensions)
 stop_db_capturing()
 

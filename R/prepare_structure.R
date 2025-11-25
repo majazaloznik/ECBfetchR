@@ -110,11 +110,9 @@ prepare_table_table <- function(dataflow_code, source_id, con) {
 #' }
 #' }
 #'
-#' @seealso
-#' \code{\link{prepare_ecb_table}}, \code{\link{prepare_ecb_dimension_levels}}
 #'
 #' @export
-prepare_ecb_table_dimensions <- function(table_id, dims_list, con) {
+prepare_table_dimensions_table <- function(table_id, dims_list, con) {
 
   cat("\n--- Checking dimensions ---\n")
 

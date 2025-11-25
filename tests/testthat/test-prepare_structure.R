@@ -21,7 +21,7 @@ test_that("prepare table dimensions table", {
     fix_ecb_url()
     tbl_id <- UMARaccessR::sql_get_table_id_from_table_code(con_test, "ICP")
     dim_list <- ecb::get_dimensions("ICP.M.U2.N.000000.4.ANR")
-    table_dimensions <- ECBfetchR:::prepare_ecb_table_dimensions(tbl_id, dim_list, con_test)
+    table_dimensions <- ECBfetchR:::prepare_table_dimensions_table(tbl_id, dim_list, con_test)
     expect_equal(dim(table_dimensions), c(6,3))
   })
 })
