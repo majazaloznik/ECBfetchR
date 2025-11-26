@@ -15,6 +15,21 @@ test_that("prepare table table", {
   })
 })
 
+test_that("prepare table table", {
+  local_mocked_bindings(
+    readline = function(prompt = "") {
+      return("")
+    },
+    .package = "base"
+  )
+
+  dittodb::with_mock_db({
+    con_test <- make_test_connection()
+    out <- prepare_table_table("AGR", 8, con_test)
+    expect_true(all(dim(out) == c(1,6)))
+  })
+})
+
 test_that("prepare table dimensions table", {
   dittodb::with_mock_db({
     con_test <- make_test_connection()
