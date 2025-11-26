@@ -26,6 +26,7 @@ Imports:
     dplyr,
     ecb,
     jsonlite,
+    purrr,
     RPostgres,
     stringr,
     UMARaccessR

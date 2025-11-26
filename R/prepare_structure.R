@@ -29,11 +29,14 @@ prepare_source_table <- function(con, schema = "platform") {
 #' @param dataflow_code Character, ECB dataflow code (e.g., "BSI")
 #' @param source_id Integer, source_id for ECB
 #' @param con Database connection
+#' @param schema defaults to platform
+#' @param keep_vintage logical defaults to FALSE
 #'
 #' @return Data frame with columns: code, name, source_id, url, notes, keep_vintage.
 #'   Returns NULL if table already exists.
 #' @export
-prepare_table_table <- function(dataflow_code, source_id, con) {
+prepare_table_table <- function(dataflow_code, source_id, con, schema = "platform",
+                                keep_vintage = FALSE) {
 
   # Check if table exists
   existing_table <- DBI::dbGetQuery(
@@ -57,9 +60,8 @@ prepare_table_table <- function(dataflow_code, source_id, con) {
     name = table_name,
     source_id = source_id,
     url = sprintf("https://data.ecb.europa.eu/data/datasets/%s", dataflow_code),
-    notes = jsonlite::toJSON(list(dataflow = dataflow_code), auto_unbox = TRUE),
-    keep_vintage = TRUE,
-    stringsAsFactors = FALSE
+    notes = as.character(jsonlite::toJSON(list(), auto_unbox = TRUE)),
+    keep_vintage = keep_vintage
   )
 }
 
@@ -70,12 +72,9 @@ prepare_table_table <- function(dataflow_code, source_id, con) {
 #' dimensions that appear in the series keys, not metadata attributes like
 #' COLLECTION, TITLE_COMPL, or UNIT.
 #'
-#' @param table_id Integer. The table_id from platform.table for which to
-#'   prepare dimensions.
-#' @param dims_list Named list. Output from \code{ecb::get_dimensions()} called
-#'   on one or more ECB series keys. Each element contains a data frame with
-#'   dimension names and values.
+#' @param series_key Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").
 #' @param con Database connection object (e.g., from \code{DBI::dbConnect()}).
+#' @param schema Database schema defaults to platform
 #'
 #' @return A data frame with columns \code{table_id}, \code{dimension}, and
 #'   \code{is_time} for dimensions that need to be inserted. Returns \code{NULL}
@@ -92,27 +91,12 @@ prepare_table_table <- function(dataflow_code, source_id, con) {
 #' The function queries the database to identify which dimensions already exist
 #' for the given table and only returns new dimensions that need to be inserted.
 #'
-#' @examples
-#' \dontrun{
-#' con <- DBI::dbConnect(...)
-#' dims_list <- ecb::get_dimensions("ICP.M.U2.N.000000.4.ANR")
-#'
-#' # Prepare dimensions for insertion
-#' dims_to_insert <- prepare_ecb_table_dimensions(
-#'   table_id = 15,
-#'   dims_list = dims_list,
-#'   con = con
-#' )
-#'
-#' # Insert if needed
-#' if (!is.null(dims_to_insert)) {
-#'   # Insert logic here
-#' }
-#' }
-#'
-#'
 #' @export
-prepare_table_dimensions_table <- function(table_id, dims_list, con) {
+prepare_table_dimensions_table <- function(series_key, con, schema = "platform") {
+
+  dims_list <- ecb::get_dimensions(series_key)
+  dataflow_code <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
+  table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
 
   cat("\n--- Checking dimensions ---\n")
 
@@ -153,4 +137,146 @@ prepare_table_dimensions_table <- function(table_id, dims_list, con) {
     is_time = FALSE,
     stringsAsFactors = FALSE
   )
+}
+
+#' Prepare ECB dimension levels metadata
+#'
+#' Extracts unique dimension level values from an ECB series key and prompts
+#' the user for descriptions of new levels that don't exist in the database.
+#' Only processes key dimensions (not attributes) by parsing the series key
+#' structure.
+#'
+#' @param series_key Character. An ECB series key (e.g.,
+#'   "ICP.M.U2.N.000000.4.ANR"). The function extracts the dataflow code from
+#'   the first part of the key and uses the number of dot-separated values to
+#'   determine which dimensions are key dimensions versus attributes.
+#' @param con Database connection object (e.g., from \code{DBI::dbConnect()}).
+#' @param schema Character. The database schema name. Default is "platform".
+#'
+#' @return A data frame with columns \code{tab_dim_id}, \code{level_value},
+#'   and \code{level_text} for dimension levels that need to be inserted.
+#'   Returns \code{NULL} if all dimension levels already exist in the database.
+#'
+#' @details
+#' The function performs the following steps:
+#' \enumerate{
+#'   \item Calls \code{ecb::get_dimensions()} to retrieve dimension information
+#'   \item Extracts the dataflow code and looks up the corresponding table_id
+#'   \item Identifies which dimension levels already exist in the database
+#'   \item For each new dimension level, prompts the user interactively to
+#'         enter a description. If the user presses Enter without typing, the
+#'         level code is used as the description.
+#' }
+#'
+#' The function assumes that table dimensions have already been created via
+#' \code{\link{prepare_table_dimensions_table}}.
+#'
+#' @examples
+#' \dontrun{
+#' con <- DBI::dbConnect(...)
+#'
+#' # Prepare dimension levels (will prompt for descriptions)
+#' levels_to_insert <- prepare_dimension_levels_table(
+#'   series_key = "ICP.M.U2.N.000000.4.ANR",
+#'   con = con
+#' )
+#'
+#' # Insert if needed
+#' if (!is.null(levels_to_insert)) {
+#'   # Insert logic here
+#' }
+#' }
+#'
+#'
+#' @export
+prepare_dimension_levels_table <- function(series_key, con, schema = "platform") {
+
+  dims_list <- ecb::get_dimensions(series_key)
+  dataflow_code <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
+  table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
+
+  cat("\n--- Checking dimension levels ---\n")
+
+  # Get tab_dim_ids for this table
+  table_dims <- DBI::dbGetQuery(
+    con,
+    "SELECT id, dimension FROM platform.table_dimensions WHERE table_id = $1",
+    params = list(table_id)
+  )
+
+  if (nrow(table_dims) == 0) {
+    stop("No table dimensions found. Run prepare_ecb_table_dimensions first.")
+  }
+
+  # Create lookup: dimension name -> tab_dim_id
+  dim_lookup <- setNames(table_dims$id, table_dims$dimension)
+
+  # Extract all unique dimension-value pairs across all series (key dimensions only)
+  all_dim_values <- purrr::map_dfr(names(dims_list), function(key) {
+    key_dims <- extract_key_dimensions(key, dims_list[[key]])
+    key_dims |>
+      dplyr::select(dim, value)
+  }) |>
+    dplyr::distinct()
+
+  # Add tab_dim_ids
+  all_dim_values$tab_dim_id <- dim_lookup[all_dim_values$dim]
+
+  # Check existing levels in database
+  # Build IN clause with placeholders
+  tab_dim_id_list <- as.integer(unname(dim_lookup))
+  placeholders <- paste0("$", seq_along(tab_dim_id_list), collapse = ", ")
+
+  query <- sprintf(
+    "SELECT tab_dim_id, level_value
+   FROM platform.dimension_levels
+   WHERE tab_dim_id IN (%s)
+    -- series: %s",
+    placeholders,
+    series_key
+  )
+
+  existing_levels <- DBI::dbGetQuery(con, query, params = as.list(tab_dim_id_list))
+
+  # Create key for matching
+  all_dim_values$key <- paste(all_dim_values$tab_dim_id, all_dim_values$value, sep = "_")
+  existing_levels$key <- paste(existing_levels$tab_dim_id, existing_levels$level_value, sep = "_")
+
+  # Filter to new levels only
+  new_levels <- all_dim_values |>
+    dplyr::filter(!key %in% existing_levels$key) |>
+    dplyr::select(tab_dim_id, dimension = dim, level_value = value)
+
+  if (nrow(new_levels) == 0) {
+    cat("All dimension levels already exist\n")
+    return(NULL)
+  }
+
+  # Report existing levels
+  existing_count <- nrow(all_dim_values) - nrow(new_levels)
+  if (existing_count > 0) {
+    cat(sprintf("  %d dimension levels already exist\n", existing_count))
+  }
+
+  # Prompt for new level descriptions
+  new_levels$level_text <- NA_character_
+
+  for (i in seq_len(nrow(new_levels))) {
+    cat(sprintf("\n  New dimension level:\n"))
+    cat(sprintf("    Dataflow: %s\n", dataflow_code))
+    cat(sprintf("    Dimension: %s\n", new_levels$dimension[i]))
+    cat(sprintf("    Code: %s\n", new_levels$level_value[i]))
+
+    level_text <- readline(prompt = "    Enter description: ")
+    if (level_text == "") {
+      cat("    Using code as description\n")
+      level_text <- new_levels$level_value[i]
+    }
+
+    new_levels$level_text[i] <- level_text
+  }
+
+  # Return only required columns
+  new_levels |>
+    dplyr::select(tab_dim_id, level_value, level_text)
 }

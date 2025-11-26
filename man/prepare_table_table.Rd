@@ -4,7 +4,13 @@
 \alias{prepare_table_table}
 \title{Prepare ECB table metadata}
 \usage{
-prepare_table_table(dataflow_code, source_id, con)
+prepare_table_table(
+  dataflow_code,
+  source_id,
+  con,
+  schema = "platform",
+  keep_vintage = FALSE
+)
 }
 \arguments{
 \item{dataflow_code}{Character, ECB dataflow code (e.g., "BSI")}
@@ -12,6 +18,10 @@ prepare_table_table(dataflow_code, source_id, con)
 \item{source_id}{Integer, source_id for ECB}
 
 \item{con}{Database connection}
+
+\item{schema}{defaults to platform}
+
+\item{keep_vintage}{logical defaults to FALSE}
 }
 \value{
 Data frame with columns: code, name, source_id, url, notes, keep_vintage.

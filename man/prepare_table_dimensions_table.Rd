@@ -4,17 +4,14 @@
 \alias{prepare_table_dimensions_table}
 \title{Prepare ECB table dimensions metadata}
 \usage{
-prepare_table_dimensions_table(table_id, dims_list, con)
+prepare_table_dimensions_table(series_key, con, schema = "platform")
 }
 \arguments{
-\item{table_id}{Integer. The table_id from platform.table for which to
-prepare dimensions.}
-
-\item{dims_list}{Named list. Output from \code{ecb::get_dimensions()} called
-on one or more ECB series keys. Each element contains a data frame with
-dimension names and values.}
+\item{series_key}{Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").}
 
 \item{con}{Database connection object (e.g., from \code{DBI::dbConnect()}).}
+
+\item{schema}{Database schema defaults to platform}
 }
 \value{
 A data frame with columns \code{table_id}, \code{dimension}, and
@@ -37,24 +34,4 @@ excluded.
 
 The function queries the database to identify which dimensions already exist
 for the given table and only returns new dimensions that need to be inserted.
-}
-\examples{
-\dontrun{
-con <- DBI::dbConnect(...)
-dims_list <- ecb::get_dimensions("ICP.M.U2.N.000000.4.ANR")
-
-# Prepare dimensions for insertion
-dims_to_insert <- prepare_ecb_table_dimensions(
-  table_id = 15,
-  dims_list = dims_list,
-  con = con
-)
-
-# Insert if needed
-if (!is.null(dims_to_insert)) {
-  # Insert logic here
-}
-}
-
-
 }
