@@ -34,7 +34,7 @@ test_that("prepare table dimensions table", {
   dittodb::with_mock_db({
     con_test <- make_test_connection()
     fix_ecb_url()
-    table_dimensions <- ECBfetchR:::prepare_table_dimensions_table("ICO.A.AT.S128.L.W0.A.EUR", con_test)
+    table_dimensions <- prepare_table_dimensions_table("ICO.A.AT.S128.L.W0.A.EUR", con_test)
     expect_equal(dim(table_dimensions), c(7,3))
   })
 })

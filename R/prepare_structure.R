@@ -105,7 +105,9 @@ prepare_table_dimensions_table <- function(series_key, con, schema = "platform")
   # Check which dimensions already exist
   existing_dims <- DBI::dbGetQuery(
     con,
-    "SELECT dimension FROM platform.table_dimensions WHERE table_id = $1",
+    sprintf("/* Params: table_id=%s */
+           SELECT dimension FROM platform.table_dimensions WHERE table_id = $1",
+            table_id),
     params = list(table_id)
   )
 
@@ -196,7 +198,9 @@ prepare_dimension_levels_table <- function(series_key, con, schema = "platform")
   # Get tab_dim_ids for this table
   table_dims <- DBI::dbGetQuery(
     con,
-    "SELECT id, dimension FROM platform.table_dimensions WHERE table_id = $1",
+    sprintf("/* Params: table_id=%s */
+           SELECT id, dimension FROM platform.table_dimensions WHERE table_id = $1",
+            table_id),
     params = list(table_id)
   )
 
@@ -364,7 +368,9 @@ prepare_series_table <- function(series_key, con, schema = "platform") {
   # Get table_dimensions for this table
   table_dims <- DBI::dbGetQuery(
     con,
-    sprintf("SELECT id, dimension FROM %s.table_dimensions WHERE table_id = $1", schema),
+    sprintf("/* Params: table_id=%s */
+           SELECT id, dimension FROM %s.table_dimensions WHERE table_id = $1",
+            table_id, schema),
     params = list(table_id)
   )
 

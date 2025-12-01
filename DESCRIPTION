@@ -29,6 +29,8 @@ Imports:
     purrr,
     RPostgres,
     stringr,
-    UMARaccessR
+    UMARaccessR,
+    UMARimportR
 Remotes:
-    majazaloznik/UMARaccessR
+    majazaloznik/UMARaccessR,
+    majazaloznik/UMARimportR
