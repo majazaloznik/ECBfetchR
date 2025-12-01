@@ -39,14 +39,10 @@ prepare_table_table <- function(dataflow_code, source_id, con, schema = "platfor
                                 keep_vintage = FALSE) {
 
   # Check if table exists
-  existing_table <- DBI::dbGetQuery(
-    con,
-    "SELECT id FROM platform.table WHERE code = $1 AND source_id = $2",
-    params = list(dataflow_code, source_id)
-  )
+  existing_table <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code)
 
-  if (nrow(existing_table) > 0) {
-    cat(sprintf("Table '%s' already exists (id: %d)\n", dataflow_code, as.numeric(existing_table$id)))
+  if (!is.na(existing_table)) {
+    cat(sprintf("Table '%s' already exists (id: %d)\n", dataflow_code, as.numeric(existing_table)))
     return(NULL)
   }
 
