@@ -475,10 +475,11 @@ prepare_series_levels_table <- function(series_key, con, schema = "platform") {
 
   # Get series_id
   series_id <- UMARaccessR::sql_get_series_id_from_series_code(series_code,con)
-  if (is.na(series_id)) {
+  # Handle both data frame and NA returns
+  if (is.na(series_id) || is.null(series_id) || nrow(series_id) == 0) {
     cat(sprintf("Series '%s' not found in database\n", series_code))
-    return(NULL)}
-
+    return(NULL)
+  }
   series_id <- series_id$id
   # Get table dimensions
   table_dims <- UMARaccessR::sql_get_dimensions_from_table_id(table_id, con, schema)
