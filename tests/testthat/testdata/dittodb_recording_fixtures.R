@@ -145,3 +145,9 @@ ECB_import_structure("ECS.Q.I9.N.4D1.CNS051_50.A1", con_test)
 
 stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+UMARaccessR::sql_get_series_id_from_series_code("ECB--ECS--I9--N--4D1--CNS051_50--A1--Q", con_test)
+stop_db_capturing()
+
+UMARaccessR::sql_get_series_id_from_series_code("ECS.Q.I9.N.4D.CNS051_50.A1", con_test)
