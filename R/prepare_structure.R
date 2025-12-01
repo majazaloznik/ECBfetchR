@@ -201,7 +201,7 @@ prepare_dimension_levels_table <- function(series_key, con, schema = "platform")
   )
 
   if (nrow(table_dims) == 0) {
-    stop("No table dimensions found. Run prepare_ecb_table_dimensions first.")
+    stop("No table dimensions found. Run prepare_table_dimensions_table first.")
   }
 
   # Create lookup: dimension name -> tab_dim_id
@@ -275,4 +275,139 @@ prepare_dimension_levels_table <- function(series_key, con, schema = "platform")
   # Return only required columns
   new_levels |>
     dplyr::select(tab_dim_id, level_value, level_text)
+}
+
+
+#' Prepare ECB series metadata
+#'
+#' Prepares series metadata for insertion into the database. Constructs the
+#' series code from source, dataflow, dimension values, and interval, and
+#' builds the series title from dimension level descriptions.
+#'
+#' @param series_key Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").
+#' @param con Database connection object.
+#' @param schema Character. The database schema name. Default is "platform".
+#'
+#' @return A data frame with columns \code{series_title}, \code{series_code},
+#'   \code{unit_id}, \code{table_id}, and \code{interval_id}. Returns \code{NULL}
+#'   if the series already exists in the database.
+#'
+#' @details
+#' The series code is constructed as:
+#' \code{source_name--dataflow_code--dimension_values--interval}
+#'
+#' For example, "ICP.M.U2.N.000000.4.ANR" becomes:
+#' "ECB--ICP--U2--N--000000--4--ANR--M"
+#'
+#' The series title is constructed by combining dimension level descriptions
+#' from the database, separated by " -- ". For example:
+#' "Euro area -- Not seasonally adjusted -- Overall index -- Eurostat -- Annual rate of change"
+#'
+#' The function assumes that table dimensions and dimension levels have already
+#' been created via \code{\link{prepare_table_dimensions_table}} and
+#' \code{\link{prepare_dimension_levels_table}}.
+#'
+#' @examples
+#' \dontrun{
+#' con <- DBI::dbConnect(...)
+#'
+#' series_df <- prepare_series_table(
+#'   series_key = "ICP.M.U2.N.000000.4.ANR",
+#'   source_name = "ECB",
+#'   con = con
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{prepare_table_table}}, \code{\link{prepare_dimension_levels_table}}
+#'
+#' @export
+prepare_series_table <- function(series_key, con, schema = "platform") {
+
+  # Parse series key
+  dims_list <- ecb::get_dimensions(series_key)
+  key_dims <- extract_key_dimensions(series_key, dims_list[[1]])
+
+  dataflow_code <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
+
+  # Get table_id
+  table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
+
+  # Extract interval (FREQ dimension)
+  interval_id <- key_dims$value[key_dims$dim == "FREQ"]
+
+  # Get dimension values excluding FREQ
+  non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
+
+  # Construct series_code: source--dataflow--dimension_values--interval
+  series_code <- paste0(
+    "ECB--",
+    dataflow_code, "--",
+    paste(non_freq_dims$value, collapse = "--"), "--",
+    interval_id
+  )
+
+  # Check if series already exists
+  existing_series <- DBI::dbGetQuery(
+    con,
+    sprintf("/* Params: code=%s, table_id=%s */
+           SELECT id FROM %s.series WHERE code = $1 AND table_id = $2",
+            series_code, table_id, schema),
+    params = list(series_code, table_id)
+  )
+
+  if (nrow(existing_series) > 0) {
+    cat(sprintf("Series '%s' already exists \n", series_code))
+    return(NULL)
+  }
+
+  # Get table_dimensions for this table
+  table_dims <- DBI::dbGetQuery(
+    con,
+    sprintf("SELECT id, dimension FROM %s.table_dimensions WHERE table_id = $1", schema),
+    params = list(table_id)
+  )
+
+  # Create lookup: dimension name -> tab_dim_id
+  dim_lookup <- setNames(table_dims$id, table_dims$dimension)
+
+  # Get dimension level texts from database (excluding FREQ)
+  level_texts <- character(nrow(non_freq_dims))
+
+  for (i in seq_len(nrow(non_freq_dims))) {
+    dim_name <- non_freq_dims$dim[i]
+    level_value <- non_freq_dims$value[i]
+    tab_dim_id <- dim_lookup[dim_name]
+
+    level_info <- DBI::dbGetQuery(
+      con,
+      sprintf("/* Params: tab_dim_id=%s, level_value=%s */
+           SELECT level_text FROM %s.dimension_levels
+           WHERE tab_dim_id = $1 AND level_value = $2",
+              tab_dim_id, level_value, schema),
+      params = list(as.integer(tab_dim_id), level_value)
+    )
+
+    if (nrow(level_info) > 0) {
+      level_texts[i] <- level_info$level_text
+    } else {
+      warning(sprintf("Level text not found for %s=%s", dim_name, level_value))
+      level_texts[i] <- level_value  # Fallback to code
+    }
+  }
+
+  # Construct series_title
+  series_title <- paste(level_texts, collapse = " -- ")
+
+  cat(sprintf("Prepared series: %s\n", series_code))
+
+  # Return data frame
+  data.frame(
+    name_long = series_title,
+    code = series_code,
+    unit_id = NA_integer_,
+    table_id = table_id,
+    interval_id = interval_id,
+    stringsAsFactors = FALSE
+  )
 }

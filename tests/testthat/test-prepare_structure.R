@@ -114,3 +114,15 @@ test_that("prepare_dimension_levels_table uses code as default when user enters 
     expect_equal(result$level_value, result$level_text)
   })
 })
+
+test_that("prepare_series_table", {
+  dittodb::with_mock_db({
+    con_test <- make_test_connection()
+    fix_ecb_url()
+    series_table <- prepare_series_table("ICP.M.DE.N.000000.4.ANR", con_test, schema = "platform")
+    expect_s3_class(series_table, "data.frame")
+    expect_true(all(dim(series_table) == c(1,5)))
+    series_table <- prepare_series_table("ICP.M.SI.N.000000.4.ANR", con_test, schema = "platform")
+    expect_true(is.null(series_table))
+  })
+})

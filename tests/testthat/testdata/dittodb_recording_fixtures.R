@@ -88,16 +88,29 @@ result2 <- result1[2,] |>
   dplyr::mutate(level_value = "DE", level_text = "Germany")
 UMARimportR::insert_new_dimension_levels(con_test, result2)
 
-cat("Recording fixtures for ICP.M.DE... (should NOT prompt)\n")
 
 start_db_capturing()
 con_test <- make_test_connection()
-
 result2 <- ECBfetchR:::prepare_dimension_levels_table(
   series_key = "ICP.M.DE.N.000000.4.ANR",
-  con = con_test
-)
-
+  con = con_test)
 stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+series_table <- prepare_series_table("ICP.M.DE.N.000000.4.ANR", con_test, schema = "platform")
+stop_db_capturing()
+
+
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+# result1 <- ECBfetchR:::prepare_dimension_levels_table(
+#   series_key = "ICP.M.SI.N.000000.4.ANR",
+#   con = con_test)
+# UMARimportR::insert_new_dimension_levels(con_test, result1)
+series_table <- prepare_series_table("ICP.M.SI.N.000000.4.ANR", con_test, schema = "platform")
+# UMARimportR::insert_new_series(con_test, series_table)
+stop_db_capturing()
 
