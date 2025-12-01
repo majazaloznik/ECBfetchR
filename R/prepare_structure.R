@@ -263,7 +263,7 @@ prepare_dimension_levels_table <- function(series_key, con, schema = "platform")
     cat(sprintf("    Dimension: %s\n", new_levels$dimension[i]))
     cat(sprintf("    Code: %s\n", new_levels$level_value[i]))
 
-    level_text <- readline(prompt = "    Enter description: ")
+    level_text <- readline(prompt = "    Enter description, otherwise the code will be used: \n check at https://data.ecb.europa.eu/data/datasets/XXX/structure")
     if (level_text == "") {
       cat("    Using code as description\n")
       level_text <- new_levels$level_value[i]
@@ -463,7 +463,7 @@ prepare_series_levels_table <- function(series_key, con, schema = "platform") {
   table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
 
   # Construct series_code to look up series_id
-  source_name <- "ECB"  # Assuming ECB - could be passed as parameter
+  source_name <- "ECB"
   interval_id <- key_dims$value[key_dims$dim == "FREQ"]
   non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
 

@@ -126,6 +126,21 @@ fix_ecb_url()
 prepare_series_levels_table("ICP.M.GR.N.000000.4.ANR", con_test, schema = "platform")
 stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+ECB_import_structure("ICP.M.U2.N.XEF000.4.ANR", con_test)
+stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+ECB_import_structure("BSI.M.U2.Y.V.M30.X.I.U2.2300.Z01.A", con_test)
+stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+ECB_import_structure("ECS.Q.I9.N.4D1.CNS051_50.A1", con_test)
+stop_db_capturing()
 
