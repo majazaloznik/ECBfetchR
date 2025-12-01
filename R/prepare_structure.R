@@ -411,3 +411,88 @@ prepare_series_table <- function(series_key, con, schema = "platform") {
     stringsAsFactors = FALSE
   )
 }
+
+#' Prepare ECB series levels metadata
+#'
+#' Prepares series level mappings for insertion into the database. Maps each
+#' dimension value from the series key to its corresponding table dimension ID.
+#'
+#' @param series_key Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").
+#' @param con Database connection object.
+#' @param schema Character. The database schema name. Default is "platform".
+#'
+#' @return A data frame with columns \code{series_id}, \code{tab_dim_id}, and
+#'   \code{level_value}. Returns \code{NULL} if the series doesn't exist in the
+#'   database yet.
+#'
+#' @details
+#' The function extracts dimension values from the series key and matches them
+#' with table dimension IDs from the database. The frequency dimension (FREQ)
+#' is moved from the first position to the last position to match the database
+#' table_dimensions order.
+#'
+#' For example, key "ICP.M.U2.N.000000.4.ANR" with dimensions:
+#' FREQ=M, REF_AREA=U2, ADJUSTMENT=N, ICP_ITEM=000000, STS_INSTITUTION=4, ICP_SUFFIX=ANR
+#'
+#' Is reordered to match table_dimensions:
+#' REF_AREA=U2, ADJUSTMENT=N, ICP_ITEM=000000, STS_INSTITUTION=4, ICP_SUFFIX=ANR, FREQ=M
+#'
+#' @examples
+#' \dontrun{
+#' con <- DBI::dbConnect(...)
+#'
+#' series_levels <- prepare_series_levels_table(
+#'   series_key = "ICP.M.U2.N.000000.4.ANR",
+#'   con = con
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{prepare_series_table}}
+#'
+#' @export
+prepare_series_levels_table <- function(series_key, con, schema = "platform") {
+
+  # Parse series key
+  dims_list <- ecb::get_dimensions(series_key)
+  key_dims <- extract_key_dimensions(series_key, dims_list[[1]])
+
+  dataflow_code <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
+
+  # Get table_id
+  table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
+
+  # Construct series_code to look up series_id
+  source_name <- "ECB"  # Assuming ECB - could be passed as parameter
+  interval_id <- key_dims$value[key_dims$dim == "FREQ"]
+  non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
+
+  series_code <- paste0(
+    source_name, "--",
+    dataflow_code, "--",
+    paste(non_freq_dims$value, collapse = "--"), "--",
+    interval_id)
+
+  # Get series_id
+  series_id <- UMARaccessR::sql_get_series_id_from_series_code(series_code,con)
+  if (is.na(series_id)) {
+    cat(sprintf("Series '%s' not found in database\n", series_code))
+    return(NULL)}
+
+  series_id <- series_id$id
+  # Get table dimensions
+  table_dims <- UMARaccessR::sql_get_dimensions_from_table_id(table_id, con, schema)
+  # Join key_dims with table_dims to get tab_dim_ids
+  series_levels <- key_dims |>
+    dplyr::left_join(
+      table_dims |> dplyr::select(dimension, tab_dim_id = id),
+      by = c("dim" = "dimension")) |>
+    dplyr::transmute(series_id = series_id,
+                     tab_dim_id = tab_dim_id,
+                     level_value = value)
+
+  cat(sprintf("Prepared %d series levels for series_id %d\n",
+              nrow(series_levels), series_id))
+
+  series_levels
+}

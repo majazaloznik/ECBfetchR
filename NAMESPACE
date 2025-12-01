@@ -2,6 +2,7 @@
 
 export(fix_ecb_url)
 export(prepare_dimension_levels_table)
+export(prepare_series_levels_table)
 export(prepare_series_table)
 export(prepare_source_table)
 export(prepare_table_dimensions_table)

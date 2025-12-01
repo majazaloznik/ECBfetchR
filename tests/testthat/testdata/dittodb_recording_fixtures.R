@@ -114,3 +114,18 @@ series_table <- prepare_series_table("ICP.M.SI.N.000000.4.ANR", con_test, schema
 # UMARimportR::insert_new_series(con_test, series_table)
 stop_db_capturing()
 
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+prepare_series_levels_table("ICP.M.SI.N.000000.4.ANR", con_test, schema = "platform")
+stop_db_capturing()
+
+start_db_capturing()
+con_test <- make_test_connection()
+fix_ecb_url()
+prepare_series_levels_table("ICP.M.GR.N.000000.4.ANR", con_test, schema = "platform")
+stop_db_capturing()
+
+
+
+

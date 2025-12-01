@@ -126,3 +126,15 @@ test_that("prepare_series_table", {
     expect_true(is.null(series_table))
   })
 })
+
+test_that("prepare_series_levels_table", {
+  dittodb::with_mock_db({
+    con_test <- make_test_connection()
+    fix_ecb_url()
+    series_levels <- prepare_series_levels_table("ICP.M.SI.N.000000.4.ANR", con_test, schema = "platform")
+    expect_s3_class(series_levels, "data.frame")
+    expect_true(all(dim(series_levels) == c(6,3)))
+    series_levels <- prepare_series_levels_table("ICP.M.GR.N.000000.4.ANR", con_test, schema = "platform")
+    expect_true(is.null(series_levels))
+  })
+})
