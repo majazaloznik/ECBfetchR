@@ -3,7 +3,7 @@
 #' NB: we are not using categories for the ECB dataflows since the website doesn't
 #' have a clean hierarchy.
 #'
-#' @param series_key Character, ecb dataset code
+#' @param series_key Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").
 #' @param con Database connection object
 #' @param source_id Integer source ID, default 8 for ECB
 #' @param schema defautls to "platform"
@@ -64,17 +64,17 @@ ECB_import_structure <- function(series_key, con,  source_id = 8, schema = "plat
 
 
 
-#' Insert data points from BS
+#' Insert data points from ECB
 #'
-#' Function to prepare and insert BS data points. The function first prepares
+#' Function to prepare and insert ECB data points. The function first prepares
 #' the required vintages and inserts them, then prepares the data points
 #' table and inserts it. The function returns the results invisibly.
 #'
-#' This is a BS specific function, which should be followed by the generic
+#' This is a ECB specific function, which should be followed by the generic
 #' UMARimportR function to write the vintage hashes and clean up redundant
 #' vintages.
 #'
-#' @param series_key Character, ecb dataset code
+#' @param series_key Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").
 #' @param con Database connection
 #' @param schema Schema name
 #'

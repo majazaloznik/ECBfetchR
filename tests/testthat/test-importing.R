@@ -48,13 +48,24 @@ test_that("import structure", {
   })
 })
 
-test_that("prepare vintage existing", {
+test_that("import data points", {
   dittodb::with_mock_db({
     con_test <- make_test_connection()
     fix_ecb_url()
     result <- ECB_import_data_points("ECS.Q.I9.N.4D1.CNS051_50.A1", con_test)
+
+    # Debug output
+    print(str(result))
+    print(paste("vintage_error:", result$vintage_error))
+    print(paste("data exists:", !is.null(result$data)))
+    if (!is.null(result$data)) {
+      print(paste("datapoints_inserted:", result$data$datapoints_inserted))
+    }
+
     expect_true(is.list(result))
-    expect_true(result$data$datapoints_inserted == 87)
+    expect_null(result$vintage_error)  # Check no errors
+    expect_false(is.null(result$data))  # Check data exists
+    expect_equal(result$data$datapoints_inserted, 87)
   })
 })
 
