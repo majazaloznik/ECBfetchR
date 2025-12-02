@@ -13,7 +13,7 @@ ECB_import_structure(
 )
 }
 \arguments{
-\item{series_key}{Character, ecb dataset code}
+\item{series_key}{Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").}
 
 \item{con}{Database connection object}
 

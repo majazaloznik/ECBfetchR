@@ -16,6 +16,7 @@
 prepare_vintage_table <- function(series_key, con, schema = "platform") {
 
   series_code <- construct_series_code(series_key)
+  series_id <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)$id
 
   # Get last modified from ECB API
   dataflow <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))

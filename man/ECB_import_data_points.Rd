@@ -2,12 +2,12 @@
 % Please edit documentation in R/importing.R
 \name{ECB_import_data_points}
 \alias{ECB_import_data_points}
-\title{Insert data points from BS}
+\title{Insert data points from ECB}
 \usage{
 ECB_import_data_points(series_key, con, schema = "platform")
 }
 \arguments{
-\item{series_key}{Character, ecb dataset code}
+\item{series_key}{Character. An ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR").}
 
 \item{con}{Database connection}
 
@@ -17,12 +17,12 @@ ECB_import_data_points(series_key, con, schema = "platform")
 Insertion results (invisibly)
 }
 \description{
-Function to prepare and insert BS data points. The function first prepares
+Function to prepare and insert ECB data points. The function first prepares
 the required vintages and inserts them, then prepares the data points
 table and inserts it. The function returns the results invisibly.
 }
 \details{
-This is a BS specific function, which should be followed by the generic
+This is a ECB specific function, which should be followed by the generic
 UMARimportR function to write the vintage hashes and clean up redundant
 vintages.
 }
