@@ -16,7 +16,7 @@
 prepare_vintage_table <- function(series_key, con, schema = "platform") {
 
   series_code <- construct_series_code(series_key)
-  series_id_result <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)$id
+  series_id_result <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)
 
   # Handle atomic NA
   if (length(series_id_result) == 1 && is.na(series_id_result)) {
