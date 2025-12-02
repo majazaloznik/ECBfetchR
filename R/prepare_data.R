@@ -16,7 +16,32 @@
 prepare_vintage_table <- function(series_key, con, schema = "platform") {
 
   series_code <- construct_series_code(series_key)
-  series_id <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)$id
+  series_id_result <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)$id
+
+  # Handle atomic NA
+  if (length(series_id_result) == 1 && is.na(series_id_result)) {
+    stop("Series '", series_code, "' not found in database")
+  }
+
+  # Handle NULL
+  if (is.null(series_id_result)) {
+    stop("Series '", series_code, "' not found in database")
+  }
+
+  # Handle data frame
+  if (is.data.frame(series_id_result)) {
+    if (nrow(series_id_result) == 0) {
+      stop("Series '", series_code, "' not found in database")
+    }
+    series_id <- as.numeric(series_id_result$id[1])
+  } else {
+    series_id <- as.numeric(series_id_result)
+  }
+
+  # Check if NA after conversion
+  if (is.na(series_id)) {
+    stop("Series '", series_code, "' not found in database")
+  }
 
   # Get last modified from ECB API
   dataflow <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
