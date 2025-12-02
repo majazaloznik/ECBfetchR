@@ -69,3 +69,70 @@ extract_key_dimensions <- function(key, dims_result) {
 
   key_dims
 }
+
+
+#' Construct ECB series code from series key
+#'
+#' Converts an ECB series key (e.g., "ICP.M.U2.N.000000.4.ANR") to the
+#' database series code format (e.g., "ECB--ICP--U2--N--000000--4--ANR--M").
+#'
+#' @param series_key Character. An ECB series key.
+#'
+#' @return Character. The constructed series code.
+#' @export
+construct_series_code <- function(series_key) {
+  # Parse series key
+  dims_list <- ecb::get_dimensions(series_key)
+  key_dims <- extract_key_dimensions(series_key, dims_list[[1]])
+
+  dataflow_code <- regmatches(series_key, regexpr("^[[:alnum:]]+", series_key))
+
+  # Extract interval (FREQ dimension)
+  interval_id <- key_dims$value[key_dims$dim == "FREQ"]
+
+  # Get dimension values excluding FREQ
+  non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
+
+  # Construct series_code: source--dataflow--dimension_values--interval
+  paste0(
+    "ECB--",
+    dataflow_code, "--",
+    paste(non_freq_dims$value, collapse = "--"), "--",
+    interval_id
+  )
+}
+
+
+#' Format period ID for database insertion
+#'
+#' Converts ECB period formats to UMAR database period format by removing or
+#' replacing separators based on the interval type.
+#'
+#' @param period Character. The period string from ECB (e.g., "2024", "2024-Q2", "2024-02").
+#' @param interval_id Character. The interval type: "A" (annual), "Q" (quarterly),
+#'   or "M" (monthly).
+#'
+#' @return Character. The formatted period ID for database insertion.
+#'
+#' @details
+#' Formatting rules:
+#' \itemize{
+#'   \item Annual (A): "2024" → "2024" (no change)
+#'   \item Quarterly (Q): "2024-Q2" → "2024Q2" (remove hyphen)
+#'   \item Monthly (M): "2024-02" → "2024M02" (replace hyphen with "M")
+#' }
+#'
+#' @examples
+#' format_period_id("2024", "A")        # "2024"
+#' format_period_id("2024-Q2", "Q")    # "2024Q2"
+#' format_period_id("2024-02", "M")    # "2024M02"
+#'
+#' @export
+format_period_id <- function(period, interval_id) {
+  switch(interval_id,
+         "A" = period,                           # Annual: no change
+         "Q" = gsub("-", "", period),            # Quarterly: remove hyphen
+         "M" = gsub("-", "M", period),           # Monthly: replace hyphen with M
+         stop("Unknown interval_id: ", interval_id, ". Expected 'A', 'Q', or 'M'.")
+  )
+}

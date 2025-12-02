@@ -344,12 +344,7 @@ prepare_series_table <- function(series_key, con, schema = "platform") {
   non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
 
   # Construct series_code: source--dataflow--dimension_values--interval
-  series_code <- paste0(
-    "ECB--",
-    dataflow_code, "--",
-    paste(non_freq_dims$value, collapse = "--"), "--",
-    interval_id
-  )
+  series_code <- construct_series_code(series_key)
 
   # Check if series already exists
   existing_series <- DBI::dbGetQuery(
@@ -468,16 +463,7 @@ prepare_series_levels_table <- function(series_key, con, schema = "platform") {
   # Get table_id
   table_id <- UMARaccessR::sql_get_table_id_from_table_code(con, dataflow_code, schema)
 
-  # Construct series_code to look up series_id
-  source_name <- "ECB"
-  interval_id <- key_dims$value[key_dims$dim == "FREQ"]
-  non_freq_dims <- key_dims[key_dims$dim != "FREQ", ]
-
-  series_code <- paste0(
-    source_name, "--",
-    dataflow_code, "--",
-    paste(non_freq_dims$value, collapse = "--"), "--",
-    interval_id)
+  series_code <- construct_series_code(series_key)
 
   # Get series_id
   series_id_result <- UMARaccessR::sql_get_series_id_from_series_code(series_code, con)

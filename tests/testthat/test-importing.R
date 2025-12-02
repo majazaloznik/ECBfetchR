@@ -48,3 +48,14 @@ test_that("import structure", {
   })
 })
 
+test_that("prepare vintage existing", {
+  dittodb::with_mock_db({
+    con_test <- make_test_connection()
+    fix_ecb_url()
+    result <- ECB_import_data_points("ECS.Q.I9.N.4D1.CNS051_50.A1", con_test)
+    expect_true(is.list(result))
+    expect_true(result$data$datapoints_inserted == 87)
+  })
+})
+
+

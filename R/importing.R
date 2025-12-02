@@ -59,3 +59,57 @@ ECB_import_structure <- function(series_key, con,  source_id = 8, schema = "plat
 
   invisible(insert_results)
 }
+
+
+
+
+
+#' Insert data points from BS
+#'
+#' Function to prepare and insert BS data points. The function first prepares
+#' the required vintages and inserts them, then prepares the data points
+#' table and inserts it. The function returns the results invisibly.
+#'
+#' This is a BS specific function, which should be followed by the generic
+#' UMARimportR function to write the vintage hashes and clean up redundant
+#' vintages.
+#'
+#' @param series_key Character, ecb dataset code
+#' @param con Database connection
+#' @param schema Schema name
+#'
+#' @return Insertion results (invisibly)
+#' @export
+ECB_import_data_points <- function(series_key, con, schema = "platform") {
+  message("Preparing vintage for: ", series_key, " into schema ", schema)
+  # collect outputs from the functions into one result list
+  result <- list()
+  # Try to prepare  vintage table but catch any errors
+  vintage_result <- tryCatch(
+    expr = {list(
+      vintages = prepare_vintage_table(series_key, con, schema),
+      error = NULL)},
+    error = function(e) {
+      error_msg <- conditionMessage(e)
+      message("Note: ", error_msg)
+      return(list(
+        vintages = NULL,
+        error = error_msg))})
+  # Store error message if any
+  result$vintage_error <- vintage_result$error
+  # Only proceed with import if vintages were prepared successfully
+  if (!is.null(vintage_result$vintages)) {
+    # import vintages
+    result$vintages <- UMARimportR::insert_new_vintage(con, vintage_result$vintages, schema)
+    message("Vintage imported for: ", series_key)
+
+    # Prepare data in ecb-specific way
+    prep_data <- prepare_ecb_data_for_insert(series_key, con, schema)
+    # Insert the prepared data
+    result$data <- UMARimportR::insert_prepared_data_points(prep_data, con, schema)
+  } else {
+    message("Skipping import for ", series_key, " due to vintage preparation issue: ", vintage_result$error)
+  }
+  invisible(result)
+}
+

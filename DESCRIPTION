@@ -1,16 +1,17 @@
 Package: ECBfetchR
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
+Title: Parse and Import ECB Data into UMAR Data Platform
+Version: 1.0.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Maja", "Zaloznik",
+      email = "maja.zaloznik@gmail.com",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: of the fetchR family of packages. 
+    Internal UMAR package for parsing dataseries from teh ECB and 
+    importing them into the platform database.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -25,7 +26,9 @@ Imports:
     dbplyr,
     dplyr,
     ecb,
+    httr,
     jsonlite,
+    lubridate,
     purrr,
     RPostgres,
     stringr,
